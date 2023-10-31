@@ -1,6 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using Mechanic.Domain.Constants;
-using Mechanic.Domain.Entities;
+﻿using Mechanic.Domain.Constants;
 using Mechanic.Infrastructure.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Identity;
@@ -56,7 +54,11 @@ public class ApplicationDbContextInitialiser
     {
         try
         {
-            await TrySeedAsync();
+            // Default roles
+            await SeedRolesAsync();
+            
+            // Default users
+            await SeedUsersAsync();
         }
         catch (Exception ex)
         {
@@ -65,45 +67,63 @@ public class ApplicationDbContextInitialiser
         }
     }
 
-    public async Task TrySeedAsync()
+    private async Task SeedUsersAsync()
     {
-        // Default roles
+        var administrator = new ApplicationUser { UserName = "administrator", Email = "administrator@gmail.com" };
+        
+        if (_userManager.Users.All(u => u.UserName != administrator.UserName))
+        {
+            await _userManager.CreateAsync(administrator, "AdministratorPassword1!");
+            if (!string.IsNullOrWhiteSpace(Roles.Administrator))
+            {
+                await _userManager.AddToRolesAsync(administrator, new [] { Roles.Administrator });
+            }
+        }
+        
+        var mechanic = new ApplicationUser { UserName = "mechanic", Email = "mechanic@gmail.com" };
+        
+        if (_userManager.Users.All(u => u.UserName != mechanic.UserName))
+        {
+            await _userManager.CreateAsync(mechanic, "MechanicPassword1!");
+            if (!string.IsNullOrWhiteSpace(Roles.Mechanic))
+            {
+                await _userManager.AddToRolesAsync(mechanic, new [] { Roles.Mechanic });
+            }
+        }
+        
+        var client = new ApplicationUser { UserName = "client", Email = "client@gmail.com" };
+
+        if (_userManager.Users.All(u => u.UserName != client.UserName))
+        {
+            await _userManager.CreateAsync(client, "ClientPassword1!");
+            if (!string.IsNullOrWhiteSpace(Roles.Client))
+            {
+                await _userManager.AddToRolesAsync(client, new [] { Roles.Client });
+            }
+        }
+    }
+
+    private async Task SeedRolesAsync()
+    {
         var administratorRole = new IdentityRole(Roles.Administrator);
 
         if (_roleManager.Roles.All(r => r.Name != administratorRole.Name))
         {
             await _roleManager.CreateAsync(administratorRole);
         }
+        
+        var mechanicRole = new IdentityRole(Roles.Mechanic);
 
-        // Default users
-        var administrator = new ApplicationUser { UserName = "administrator@localhost", Email = "administrator@localhost" };
-
-        if (_userManager.Users.All(u => u.UserName != administrator.UserName))
+        if (_roleManager.Roles.All(r => r.Name != mechanicRole.Name))
         {
-            await _userManager.CreateAsync(administrator, "Administrator1!");
-            if (!string.IsNullOrWhiteSpace(administratorRole.Name))
-            {
-                await _userManager.AddToRolesAsync(administrator, new [] { administratorRole.Name });
-            }
+            await _roleManager.CreateAsync(mechanicRole);
         }
 
-        // Default data
-        // Seed, if necessary
-        if (!_context.TodoLists.Any())
-        {
-            _context.TodoLists.Add(new TodoList
-            {
-                Title = "Todo List",
-                Items =
-                {
-                    new TodoItem { Title = "Make a todo list 📃" },
-                    new TodoItem { Title = "Check off the first item ✅" },
-                    new TodoItem { Title = "Realise you've already done two things on the list! 🤯"},
-                    new TodoItem { Title = "Reward yourself with a nice, long nap 🏆" },
-                }
-            });
+        var clientRole = new IdentityRole(Roles.Client);
 
-            await _context.SaveChangesAsync();
+        if (_roleManager.Roles.All(r => r.Name != clientRole.Name))
+        {
+            await _roleManager.CreateAsync(clientRole);
         }
     }
 }
